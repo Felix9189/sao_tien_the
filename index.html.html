@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Sao Tiền Thế - Phiên Bản Ổn Định</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
+    <style>
+        body {
+            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .result-box {
+            border-left: 4px solid #4f46e5;
+            background-color: #eef2ff;
+        }
+        /* Animation nhẹ */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-100 to-blue-200">
+
+    <div class="max-w-3xl w-full bg-white rounded-xl card-shadow overflow-hidden">
+        <div class="bg-indigo-600 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold uppercase tracking-wide">Tra Cứu Sao Tiền Thế</h1>
+            <p class="text-indigo-200 text-sm mt-1">Chuyển đổi Lịch Âm & Luận giải Tiền Kiếp</p>
+        </div>
+
+        <div class="p-8">
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="birthdate">
+                    Nhập Ngày Sinh Dương Lịch
+                </label>
+                <div class="flex gap-4">
+                    <input type="date" id="birthdate" class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <button onclick="processHoroscope()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline transition duration-300">
+                        Tra Cứu
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultArea" class="hidden animate-fade-in-up">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="text-gray-500 text-xs font-bold uppercase">Ngày Dương Lịch</h3>
+                        <p id="solarDisplay" class="text-lg font-semibold text-gray-800">--/--/----</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="text-gray-500 text-xs font-bold uppercase">Ngày Âm Lịch</h3>
+                        <p id="lunarDisplay" class="text-lg font-semibold text-indigo-600">--/--/----</p>
+                        <p id="lunarYearInfo" class="text-sm text-gray-600 italic">Năm ..., Tháng ...</p>
+                    </div>
+                </div>
+
+                <div class="text-center mb-8">
+                    <h2 class="text-gray-600 font-medium">Sao Tiền Thế Của Bạn</h2>
+                    <div id="starName" class="text-4xl font-extrabold text-indigo-700 mt-2 uppercase">---</div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="result-box p-6 rounded-r-lg">
+                        <h3 class="text-indigo-800 font-bold text-lg mb-2 flex items-center">
+                            <span class="mr-2">🌌</span> Kiếp Trước
+                        </h3>
+                        <div id="pastLifeContent" class="text-gray-700 leading-relaxed whitespace-pre-line"></div>
+                    </div>
+
+                    <div class="result-box p-6 rounded-r-lg border-l-4 !border-green-500 !bg-green-50">
+                        <h3 class="text-green-800 font-bold text-lg mb-2 flex items-center">
+                            <span class="mr-2">🌱</span> Ảnh Hưởng Kiếp Này
+                        </h3>
+                        <div id="presentLifeContent" class="text-gray-700 leading-relaxed whitespace-pre-line"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="hidden mt-4 p-4 bg-red-100 text-red-700 rounded-lg border border-red-200 text-center"></div>
+
+        </div>
+        <div class="bg-gray-100 p-4 text-center text-gray-500 text-xs">
+            Hệ thống sử dụng thuật toán Lịch Pháp Á Đông chính xác.
+        </div>
+    </div>
+
+    <script>
+        // --- DỮ LIỆU CẤU HÌNH ---
+        const EARTHLY_BRANCHES = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
+        const STARS = ["Kiến Lộc", "Trừ Lộc", "Mãn Lộc", "Bình Lộc", "Định Lộc", "Chấp Lộc", "Phá Lộc", "Nguy Lộc", "Thành Lộc", "Thu Lộc", "Khai Lộc", "Bế Lộc"];
+        const INTERPRETATIONS = {
+            "Kiến Lộc": { past: "Kiến lộc lộc bản doanh, bách sự năng mưu thành. Món đình kinh thư thục, định thị hạnh phúc nhân.\n(Kiến lộc lộc vơi đầy, mọi sự đều thành, thông thuộc kinh thư, nhất định là người hạnh phúc).", present: "Kiếp này được như ý, làm quan, giàu sang, cơm áo no đủ, cả đời thanh nhàn, danh lợi song toàn. Nữ có mệnh vượng tướng, là mệnh phát đạt từ sớm." },
+            "Trừ Lộc": { past: "Trừ lộc lộc nan cầu, bách kế uổng dụng tâm. Cải tính danh sản địa, tái đắc tiểu hứa làm.\n(Lộc khó cầu, nhiều kế nhưng không thành, phải đổi tên họ, quê hương mới có thể bớt khó khăn).", present: "Kiếp này bị hình phạt tổn hại đến thân thể, là người vất vả, phải lao động chân tay, từ nhỏ đã không giữ được của cải, thu nhiều chi cũng nhiều. Của đến của lại đi, cuối đời mới được hưng vượng. Nữ có bản tính trầm tĩnh, cả đời yên ổn, hạnh phúc." },
+            "Mãn Lộc": { past: "Mãn lộc lộc có dư, mệnh đời vô hình thương. Bất dụng thân lao khổ, tựu đắc thế gian tài.\n(Lộc có thừa, không bị hình phạt, không cần vất vả cũng có được của cải).", present: "Kiếp này bổng lộc khó có, người thân ít được nhờ cậy, tự lập nên gia nghiệp, từ nhỏ vất vả, cuối đời giàu sang. Phụ nữ trung niên và cuối đời hy sinh lợi ích, là người lo liệu mọi việc trong gia đình." },
+            "Bình Lộc": { past: "Bình lộc lộc du du, vô tai diệc vô hoạ. Nỗ lực uổng bạch phi, mệnh định thị hình dung.\n(Bổng lộc bình thường, không có tai họa. Nỗ lực được đền đáp, là mệnh bình thường).", present: "Thẳng thắn, cả đời cơm áo no đủ, tự do tự tại, không bị người khác lừa gạt, được nhờ cậy lục thân. Vợ đứng tuổi thì hôn nhân hoà hợp, mệnh trường thọ." },
+            "Định Lộc": { past: "Định lộc do thiên định, mạc yếu khổ trung cầu. Nỗ lực diệc uổng nhiên, tam sinh đã vô họa.\n(Lộc là do trời ban định, không cần phải vất vả tìm kiếm; Chỉ cần nỗ lực sẽ không gặp hoạ).", present: "Cả đời giàu sang, vạn sự như ý, phúc lộc có thừa, là mệnh phát phúc phát quý. Nữ là mệnh phúc thọ." },
+            "Chấp Lộc": { past: "Chấp lộc mệnh đa tao, khốn khổ tổng nan miên. Tảo niên tài lưu thuỷ, văn cách nan tích tục.\n(Nhiều bất lợi, khó tránh được khốn khó; Khi còn trẻ tiền vào như nước, đến già túng thiếu).", present: "Tính tình nóng vội, bộc tuệch, khó giấu được bí mật, dễ vui vẻ cũng nhanh nổi giận, thay đổi khôn lường. Cha mẹ có hình khắc, coi trọng tình thân, vợ quản chồng, nhận cha mẹ nuôi." },
+            "Phá Lộc": { past: "Phá lộc phúc lộc vô, thử thị có độc thân. Môn đình vân già nguyệt, hà nhật kiến nguyệt minh.\n(Không có phúc lộc, đây là mệnh cô độc; Công danh mờ mịt như mây che trăng, khó thấy được ánh trăng sáng).", present: "Thông minh lanh lợi, khi còn trẻ làm chuyện ngang ngược, đến trung niên của cải đủ dùng, cuối đời khó có của. Nữ có lộc chăn nuôi, là mệnh phát phúc." },
+            "Nguy Lộc": { past: "Nguy lộc mệnh như hà, cư đạo y lộc đa. Xuất gia phương vi diệu, nhất sinh bái phật tiền.\n(Mệnh Nguy lộc thì nên xuất gia tu hành, cả đời theo Phật).", present: "Thành thực, cả đời giàu sang, cửa nhà yên ổn hưng vượng, cơm áo đủ dùng. Những năm đầu thì của cải không giữ được, cuối đời hưng vượng, rời bỏ quê hương đi lập nghiệp là tốt nhất. Nữ hiền lương, là mệnh vượng phu." },
+            "Thành Lộc": { past: "Thành lộc lộc miên trường, hành sự hữu chủ trương. Thăng tỵ phong sương vũ, vãn cảnh định an khang.\n(Nhiều lộc, làm việc có chủ trương, nếu tránh được mưa gió thì cuối đời nhất định an khang).", present: "Bổng lộc không ít, không gây chuyện thị phi, vợ chồng không bị hình khắc, con cái sinh muộn là tốt nhất. Tuy có của cải, bổng lộc nhưng cuối đời có mất mát lớn, nên cẩn thận. Nữ có mệnh cầm quyền." },
+            "Thu Lộc": { past: "Thu lộc thị bất đồng, thứ nhân bất bình dung. Trung niên tiêu dao phúc, vãn cảnh vận đại thông.\n(Người này mệnh không bình thường, trung niên tự nhiên hưởng phúc, vận cuối đời thuận lợi).", present: "Tính tình ôn hoà, bổng lộc của cải nhiều, giỏi văn nghệ, có tài năng. Nam nữ có điềm báo tái hôn, về sau vợ chồng hoà hợp, bách niên giai lão. Nữ là mệnh dịu dàng, chu đáo." },
+            "Khai Lộc": { past: "Khai lộc lõi thông minh, tác sự cận quý nhân. Y lộc thiên chủ định, du nhiên tự phong hưởng.\n(Thông minh, làm việc gần với bậc quý nhân; Bổng lộc do trời định, tự nhiên mà hưởng).", present: "Học nhiều thành tài, cơm áo đủ dùng. Nam cưới được vợ hiền, nhàn hạ nhưng trong lòng phiền muộn, nhiều chuyện buồn cũng nhiều chuyện vui, người thân xa lánh, mọi việc đều tự làm. Nữ là mệnh hưng vượng, giỏi giang." },
+            "Bế Lộc": { past: "Bế lộc khổ trung cầu, hà thời nguyệt chiêu mệnh. Tổ cơ đã nan lập, trung niên y thực doanh.\n(Lộc khó cầu, đến khi nào mới được ánh trăng chiếu sáng. Cơ nghiệp tổ tiên khó lấy, trung niên cơm áo đủ đầy).", present: "Tấm lòng bao dung, rộng mở, văn võ song toàn, có tài lãnh đạo và mưu lược. Khi còn trẻ bình bình, trung niên có thành tựu, làm việc gặp hung hoá cát. Nữ là mệnh phát đạt, vượng phu." }
+        };
+
+        // --- HÀM XỬ LÝ CHÍNH ---
+        function processHoroscope() {
+            const dateInput = document.getElementById('birthdate').value;
+            const resultArea = document.getElementById('resultArea');
+            const errorArea = document.getElementById('errorMessage');
+
+            // Reset UI
+            resultArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+
+            if (!dateInput) {
+                errorArea.textContent = "Vui lòng chọn ngày tháng năm sinh dương lịch.";
+                errorArea.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const dateParts = dateInput.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]);
+                const day = parseInt(dateParts[2]);
+
+                // 1. Chuyển đổi Âm Lịch sử dụng thư viện lunar-javascript
+                // Solar.fromYmd(y, m, d) giúp tránh lỗi timezone so với new Date()
+                const solar = Solar.fromYmd(year, month, day);
+                const lunar = solar.getLunar();
+
+                const lunarDay = lunar.getDay();
+                const lunarMonth = lunar.getMonth();
+                const lunarYear = lunar.getYear();
+                
+                // Lấy tên Can Chi Năm (Ví dụ: Giáp Thìn)
+                // lunar-javascript hỗ trợ sẵn lấy Can Chi
+                const namCanChi = lunar.getYearInGanZhi(); 
+                // Lấy tên Chi (Địa Chi) để tính toán (Tý, Sửu...)
+                // getYearZhi() trả về tên Chi tiếng Việt (Tý, Sửu...) hoặc tiếng Trung tùy cấu hình,
+                // Nhưng ta sẽ tính index thủ công để khớp với mảng EARTHLY_BRANCHES của chúng ta cho an toàn.
+                
+                // Tính Index Địa Chi: (Năm - 4) % 12. 
+                // Lưu ý: Dùng lunarYear vì năm âm lịch có thể khác năm dương lịch.
+                let branchIndex = (lunarYear - 4) % 12;
+                if (branchIndex < 0) branchIndex += 12;
+                const branchName = EARTHLY_BRANCHES[branchIndex];
+
+                // 2. Logic Tra Bảng (Ma trận dịch chuyển vòng tròn)
+                // Công thức: (Tháng Âm - 1 - IndexChi + 12) % 12
+                // Logic: 
+                // Tuổi Tý (0), Tháng 1 -> Index 0 (Kiến Lộc)
+                // Tuổi Sửu (1), Tháng 1 -> Index 11 (Bế Lộc)
+                const starIndex = (lunarMonth - 1 - branchIndex + 12) % 12;
+                const starName = STARS[starIndex];
+
+                // 3. Hiển thị kết quả
+                document.getElementById('solarDisplay').textContent = `${day}/${month}/${year}`;
+                document.getElementById('lunarDisplay').textContent = `${lunarDay}/${lunarMonth}/${lunarYear}`;
+                document.getElementById('lunarYearInfo').textContent = `Năm ${namCanChi} (Tuổi ${branchName})`;
+                
+                document.getElementById('starName').textContent = starName;
+
+                // Lấy nội dung luận giải
+                const content = INTERPRETATIONS[starName];
+                if (content) {
+                    document.getElementById('pastLifeContent').textContent = content.past;
+                    document.getElementById('presentLifeContent').textContent = content.present;
+                } else {
+                    document.getElementById('pastLifeContent').textContent = "Chưa có dữ liệu cho sao này.";
+                    document.getElementById('presentLifeContent').textContent = "Chưa có dữ liệu cho sao này.";
+                }
+
+                resultArea.classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                errorArea.textContent = "Lỗi hệ thống: Không thể tính toán ngày âm lịch. Vui lòng thử lại.";
+                errorArea.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
